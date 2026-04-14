@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head><title>测试云函数</title></head>
+<body>
+<button id="btn">测试提交</button>
+<script>
+    const proxyUrl = "https://1422160625-b3gk56ec65.ap-guangzhou.tencentscf.com";  // 替换为实际地址
+    document.getElementById('btn').addEventListener('click', async () => {
+        try {
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storeName: "测试门店",
+                    contact: "张三",
+                    mobile: "13800000000",
+                    totalAmount: 100,
+                    itemsText: "测试商品 ×1盒 ￥100"
+                })
+            });
+            const text = await response.text();
+            alert("收到响应：" + text);
+        } catch (err) {
+            alert("请求失败：" + err.message);
+        }
+    });
+</script>
+</body>
+</html>
