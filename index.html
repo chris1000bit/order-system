@@ -1,0 +1,81 @@
+submitBtn.addEventListener('click', async () => {
+    const storeName = document.getElementById('storeName').value.trim();
+    const contact = document.getElementById('contact').value.trim();
+    const mobile = document.getElementById('mobile').value.trim();
+    if (!storeName || !contact || !mobile) {
+        showMessage('请完整填写门店名称、联系人、手机号', true);
+        return;
+    }
+    const items = [];
+    for (let i = 0; i < products.length; i++) {
+        const qty = quantities[i];
+        if (qty > 0) {
+            const p = products[i];
+            const discount = calculateDiscount(p.policy, qty, p.price);
+            const subtotal = p.price * qty - discount;
+            items.push({
+                name: p.name,
+                quantity: qty,
+                unitPrice: p.price,
+                discount: discount,
+                subtotal: subtotal
+            });
+        }
+    }
+    if (items.length === 0) {
+        showMessage('请至少选择一个商品并填写数量', true);
+        return;
+    }
+    const totalAmount = parseFloat(document.getElementById('totalAmount').innerText);
+    const itemsText = items.map(item => 
+        `${item.name} ×${item.quantity}盒 ￥${item.subtotal}`
+    ).join("；");
+    
+    // === 以下是飞书API调用部分 ===
+    const APP_TOKEN = "NhkWbKKRXadCljsK8occWzAIndg";        // 替换为你的表格ID
+    const TABLE_ID = "tblZZDHSqoIX44bK";       // 替换为你的工作表ID
+    const PERSONAL_BASE_TOKEN = "pt-TM_Un5dKxLzKikeClg3tVLf1K75fbf_daQQE3mmdAQAA1YsBPuDMQUk5kUGL";  // 替换为第二步获取的授权码
+    
+    const feishuUrl = `https://open.feishu.cn/open-apis/bitable/v1/apps/${APP_TOKEN}/tables/${TABLE_ID}/records`;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerText = '提交中...';
+    
+    try {
+        const response = await fetch(feishuUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${PERSONAL_BASE_TOKEN}`
+            },
+            body: JSON.stringify({
+                fields: {
+                    "提交时间": new Date().toLocaleString("zh-CN"),
+                    "门店名称": storeName,
+                    "联系人": contact,
+                    "手机号": mobile,
+                    "总金额": totalAmount,
+                    "订单详情": itemsText
+                }
+            })
+        });
+        
+        if (response.ok) {
+            showMessage('订单提交成功！感谢下单');
+            for (let i = 0; i < quantities.length; i++) quantities[i] = 0;
+            renderProducts();
+            document.getElementById('storeName').value = '';
+            document.getElementById('contact').value = '';
+            document.getElementById('mobile').value = '';
+        } else {
+            const errText = await response.text();
+            showMessage('提交失败：' + errText, true);
+        }
+    } catch (err) {
+        showMessage('提交失败，请检查网络', true);
+        console.error(err);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '✅ 提交订单';
+    }
+});
